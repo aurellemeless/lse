@@ -2,7 +2,7 @@
 
 > Un moyen simple et transparent de faire travailler votre ETH, en utilisant une des meilleures infrastructures d'agent IA du marché, sans la complexité d'une gouvernance active.
 
-Formation Blockchain Alyra 2025
+Formation Blockchain Alyra 2026
 
 ---
 
@@ -95,6 +95,7 @@ Utilisateur (WETH)
 | Tests | Mocha + Ethers v6 — 21 tests |
 | Swap | ISwapper (MockSwapper en test, UniswapV3 en prod) |
 | Yield | ZyFAI SmartAccountWrapper (USDC, Base Mainnet) |
+| Frontend | Next.js + Tailwind CSS |
 
 ---
 
@@ -117,9 +118,22 @@ lse/
 │   ├── ignition/modules/
 │   │   └── LSE.ts                         # Module de déploiement
 │   └── hardhat.config.ts
+├── frontend/                              # Interface utilisateur du projet
 └── docs/
     └── PROJECT_STATUS.md                  # Architecture & points bloquants
 ```
+
+---
+
+## Lancer le frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Ouvre [http://localhost:3000](http://localhost:3000) dans le navigateur.
 
 ---
 
@@ -158,5 +172,22 @@ SEPOLIA_PRIVATE_KEY=...
 
 - Instance ZyFAI WETH native sur Base → suppression du swap WETH/USDC
 - Intégration d'un second agent (**Giza**) en compétition avec ZyFAI
-- L'utilisateur pourra choisir son agent et s'y exposer via des paires `agent/$LSE`
+- Détenir des LSE pour avoir le droit de faire des prédictions sur la performance des agents.
 - Protocole open source : toute entité peut déployer un vault compatible
+
+## Références
+
+**Standards**
+- [EIP-4626 — Tokenized Vault Standard](https://eips.ethereum.org/EIPS/eip-4626)
+- [EIP-7540 — Asynchronous ERC-4626 Tokenized Vaults](https://eips.ethereum.org/EIPS/eip-7540)
+- [erc7540-wrapper — implémentation de référence (ondefy)](https://github.com/ondefy/erc7540-wrapper)
+
+**Infrastructure**
+- [Base — L2 OP Stack](https://base.org)
+- [ZyFAI — Agent IA de yield](https://zyfi.org)
+- [Uniswap v3 — Protocole de swap](https://docs.uniswap.org)
+
+**Curateurs indépendants**
+- [DeFiLlama](https://defillama.com)
+
+- [Pharos Watch](https://pharos.watch)
