@@ -7,8 +7,8 @@ import { Providers } from './providers'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
-  title: '$LSE — Liquid Stock ETH',
-  description: 'Yield on your WETH, powered by ZyFAI',
+  title: '$LSE — Rendement sur WETH',
+  description: 'Générez du rendement sur votre WETH avec ZyFAI',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieHeader = headersList.get('cookie')
 
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html lang="fr" className={geist.variable} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <Providers cookies={cookieHeader}>{children}</Providers>
       </body>

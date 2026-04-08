@@ -1,41 +1,50 @@
 import { Navbar } from '@/components/Navbar'
-import { DepositForm } from '@/components/DepositForm'
-import { RedeemForm } from '@/components/RedeemForm'
-import { PendingCard, ClaimCard } from '@/components/ClaimSection'
+import { VaultStats } from '@/components/VaultStats'
 import { VaultSidebar } from '@/components/VaultSidebar'
+import { InvestorFlow } from '@/components/InvestorFlow'
+import { ActionTabs } from '@/components/ActionTabs'
+import { Badge } from '@/components/ui/badge'
 
 export default function Home() {
   return (
     <>
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-[1100px] mx-auto px-6 py-10 space-y-8">
 
         {/* Protocol header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Earn yield with WETH
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Deposit WETH, receive $LSE shares backed by ZyFAI AI-managed yield
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <h1 className="font-bold text-2xl tracking-tight">
+              Générez du rendement avec WETH
+            </h1>
+            <Badge variant="outline" className="text-[10px] font-mono">Alyra 2026</Badge>
+            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">Groupe 4</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Déposez du WETH · recevez des parts $LSE adossées au rendement IA de ZyFAI · coffre asynchrone ERC-7540
           </p>
         </div>
 
-        {/* Main layout: 2/3 grid + 1/3 sidebar */}
-        <div className="grid lg:grid-cols-3 gap-6 items-start">
+        {/* Stats band */}
+        <VaultStats />
 
-          {/* 2×2 action grid */}
-          <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
-            <DepositForm />
-            <RedeemForm />
-            <PendingCard />
-            <ClaimCard />
+        {/* How it works */}
+        <InvestorFlow />
+
+        {/* Main: actions + sidebar */}
+        <div className="grid lg:grid-cols-3 gap-5 items-start">
+          <div className="lg:col-span-2">
+            <ActionTabs />
           </div>
-
-          {/* Vault info sidebar */}
           <VaultSidebar />
-
         </div>
+
+        {/* Footer disclaimer */}
+        <p className="text-[10px] font-mono text-muted-foreground border-t border-border pt-6">
+          Contrat non audité — démo uniquement sur le réseau de test Sepolia — pas de conseil financier
+        </p>
+
       </div>
     </>
   )

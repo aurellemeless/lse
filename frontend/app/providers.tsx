@@ -15,7 +15,7 @@ createAppKit({
   networks: [sepolia],
   metadata: {
     name: '$LSE',
-    description: 'Liquid Stock ETH — yield on your WETH, powered by ZyFAI',
+    description: 'Générez du rendement sur votre WETH avec ZyFAI',
     url: 'https://lse.finance',
     icons: [],
   },
