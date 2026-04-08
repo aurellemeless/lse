@@ -24,43 +24,31 @@ export function RedeemForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Your $LSE Balance</CardTitle>
-        <CardDescription>Redeem shares for WETH (2-step)</CardDescription>
+        <CardTitle className="text-base">Votre solde $LSE</CardTitle>
+        <CardDescription>Demande de rachat — les parts sont brûlées, puis le WETH est récupérable après ~60 s</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <p className="text-3xl font-bold">
-            {parseFloat(formatEther(lseBalance)).toFixed(4)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-0.5">$LSE shares held</p>
-        </div>
+        <p className="text-3xl font-bold">{parseFloat(formatEther(lseBalance)).toFixed(4)}</p>
 
         <div className="space-y-2">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>$LSE à racheter</span>
+            <span>{parseFloat(formatEther(lseBalance)).toFixed(4)} $LSE</span>
+          </div>
           <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              className="flex-1 h-10"
-            />
-            <Button variant="outline" size="sm" className="h-10 px-3 text-xs" onClick={() => setAmount(formatEther(lseBalance))}>
-              MAX
-            </Button>
+            <Input type="number" placeholder="0.0" value={amount} onChange={e => setAmount(e.target.value)} className="flex-1 h-10" />
+            <Button variant="outline" size="sm" className="h-10 px-3 text-xs" onClick={() => setAmount(formatEther(lseBalance))}>MAX</Button>
           </div>
           {wethEstimate > 0n && (
-            <p className="text-xs text-muted-foreground">
-              ≈ {parseFloat(formatEther(wethEstimate)).toFixed(4)} WETH after ~60s
-            </p>
+            <p className="text-xs text-muted-foreground">≈ {parseFloat(formatEther(wethEstimate)).toFixed(4)} WETH après ~60 s</p>
           )}
-          <Button
-            className="w-full bg-orange-700 hover:bg-orange-600"
-            onClick={() => { if (amountWei) { setStep('pending'); requestRedeem(amountWei) } }}
-            disabled={!amountWei || isPending || step === 'done'}
-          >
-            {step === 'done' ? '✓ Request submitted' : isPending ? 'Submitting…' : 'Request Redeem'}
-          </Button>
         </div>
+
+        <Button className="w-full h-10 bg-orange-700 hover:bg-orange-600"
+          onClick={() => { if (amountWei) { setStep('pending'); requestRedeem(amountWei) } }}
+          disabled={!amountWei || isPending || step === 'done'}>
+          {step === 'done' ? '✓ Demande envoyée' : isPending ? 'Envoi…' : 'Demander le rachat'}
+        </Button>
 
         {error && <p className="text-xs text-destructive">{error.message?.slice(0, 80)}</p>}
       </CardContent>

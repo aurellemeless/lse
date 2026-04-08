@@ -14,14 +14,12 @@ export function Navbar() {
             </div>
             <span className="font-bold tracking-tight">$LSE</span>
           </div>
-          <div className="hidden md:flex gap-6 text-sm">
-            <span className="font-medium cursor-default">Dashboard</span>
-          </div>
+          <span className="hidden md:block text-sm font-medium cursor-default">Tableau de bord</span>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="hidden sm:flex text-muted-foreground">Sepolia</Badge>
           <ThemeToggle />
-          <w3m-button />
+          <w3m-button label="Se connecter" loadingLabel="Connexion…" />
         </div>
       </div>
     </nav>

@@ -35,55 +35,44 @@ export function DepositForm() {
   }
 
   const isLoading = approve.isPending || deposit.isPending
-  const label = step === 'done' ? '✓ Deposited'
-    : approve.isPending ? 'Approving…'
-    : deposit.isPending ? 'Depositing…'
-    : needsApproval     ? 'Approve WETH'
-    : 'Supply'
+  const label = step === 'done'   ? '✓ Dépôt effectué'
+    : approve.isPending ? 'Approbation…'
+    : deposit.isPending ? 'Dépôt en cours…'
+    : needsApproval     ? 'Autoriser le WETH'
+    : 'Déposer du WETH'
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Your WETH Balance</CardTitle>
-        <CardDescription>Deposit WETH to mint $LSE shares</CardDescription>
+        <CardTitle className="text-base">Votre solde WETH</CardTitle>
+        <CardDescription>Déposez du WETH pour recevoir des parts $LSE</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <p className="text-3xl font-bold">
-            {parseFloat(formatEther(wethBalance)).toFixed(4)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-0.5">WETH available</p>
-        </div>
+        <p className="text-3xl font-bold">{parseFloat(formatEther(wethBalance)).toFixed(4)}</p>
 
         <div className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              className="flex-1 h-10"
-            />
-            <Button variant="outline" size="sm" className="h-10 px-3 text-xs" onClick={() => setAmount(formatEther(wethBalance))}>
-              MAX
-            </Button>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Montant à déposer</span>
+            <span>{parseFloat(formatEther(wethBalance)).toFixed(4)} WETH</span>
           </div>
-          <Button className="w-full" onClick={handleSubmit} disabled={!amountWei || isLoading || step === 'done'}>
-            {label}
-          </Button>
+          <div className="flex gap-2">
+            <Input type="number" placeholder="0.0" value={amount} onChange={e => setAmount(e.target.value)} className="flex-1 h-10" />
+            <Button variant="outline" size="sm" className="h-10 px-3 text-xs" onClick={() => setAmount(formatEther(wethBalance))}>MAX</Button>
+          </div>
         </div>
+
+        <Button className="w-full h-10" onClick={handleSubmit} disabled={!amountWei || isLoading || step === 'done'}>
+          {label}
+        </Button>
 
         {(approve.error || deposit.error) && (
           <p className="text-xs text-destructive">{(approve.error || deposit.error)?.message?.slice(0, 80)}</p>
         )}
 
         <div className="pt-1 border-t border-border">
-          <button
-            onClick={() => mintWETH.mint(parseEther('10'))}
-            disabled={mintWETH.isPending}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {mintWETH.isPending ? 'Minting…' : '+ Get 10 test WETH (Sepolia only)'}
+          <button onClick={() => mintWETH.mint(parseEther('10'))} disabled={mintWETH.isPending}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            {mintWETH.isPending ? 'Création en cours…' : '+ Obtenir 10 WETH de test (Sepolia uniquement)'}
           </button>
         </div>
       </CardContent>

@@ -19,30 +19,28 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 }
 
 export function VaultStats() {
-  const { totalAssets, totalSupply, lseBalance, wethBalance, sharePrice, positionValue, isLoading } = useVaultStats()
+  const { totalAssets, lseBalance, wethBalance, sharePrice, positionValue, isLoading } = useVaultStats()
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="flex flex-wrap gap-10 animate-pulse">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-3 w-24 bg-muted rounded" />
-              <div className="h-6 w-20 bg-muted rounded" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <Card><CardContent className="flex flex-wrap gap-10 animate-pulse">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-3 w-24 bg-muted rounded" />
+            <div className="h-6 w-20 bg-muted rounded" />
+          </div>
+        ))}
+      </CardContent></Card>
     )
   }
 
   return (
     <Card>
       <CardContent className="flex flex-wrap gap-10">
-        <Stat label="Total vault assets" value={`${fmt(totalAssets)} WETH`} sub="Locked in ZyFAI" />
-        <Stat label="Share price"        value={`${fmt(sharePrice)} WETH`}  sub="Per 1 $LSE" />
-        <Stat label="Your $LSE"          value={fmt(lseBalance)}            sub={`≈ ${fmt(positionValue)} WETH`} />
-        <Stat label="Your WETH"          value={`${fmt(wethBalance)} WETH`} />
+        <Stat label="Total actifs du coffre" value={`${fmt(totalAssets)} WETH`} sub="Bloqués dans ZyFAI" />
+        <Stat label="Prix de la part"        value={`${fmt(sharePrice)} WETH`}  sub="Pour 1 $LSE" />
+        <Stat label="Vos $LSE"               value={fmt(lseBalance)}            sub={`≈ ${fmt(positionValue)} WETH`} />
+        <Stat label="Votre WETH"             value={`${fmt(wethBalance)} WETH`} />
       </CardContent>
     </Card>
   )
