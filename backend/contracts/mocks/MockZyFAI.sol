@@ -7,27 +7,27 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /**
  * @title MockZyFAI
- * @dev Simule le SmartAccountWrapper ZyFAI pour les tests.
+ * @dev Simulates the ZyFAI SmartAccountWrapper for tests.
  *
- *      Ratio shares/assets = 1:1 au départ.
- *      Yield simulé via simulateYield() — ajoute de l'USDC sans minter de shares.
+ *      Initial share/asset ratio is 1:1.
+ *      Yield can be simulated via simulateYield() — adds USDC without minting shares.
  *
- *      Comportement async (requestId = 0, agrégé comme le vrai ZyFAI) :
- *        1. requestRedeem()  → ajoute dans "pending" du controller
- *        2. fulfillAll()     → [test helper] déplace tout en "claimable"
- *        3. claimableRedeemRequest(0, controller) → retourne le total claimable
- *        4. redeem()         → donne l'USDC, soustrait du claimable
+ *      Async behaviour (requestId = 0, aggregated like the real ZyFAI):
+ *        1. requestRedeem()  → adds shares to the controller's pending bucket
+ *        2. fulfillAll()     → [test helper] moves all pending to claimable
+ *        3. claimableRedeemRequest(0, controller) → returns total claimable shares
+ *        4. redeem()         → transfers USDC, deducts from claimable
  */
 contract MockZyFAI is IZyFAI {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable usdc;
 
-    // Shares internes par adresse
+    // Internal share accounting per address
     mapping(address => uint256) private _shares;
     uint256 private _totalShares;
 
-    // Demandes async agrégées par controller (requestId = 0 dans ZyFAI réel)
+    // Aggregated async request buckets per controller (requestId = 0 in real ZyFAI)
     mapping(address => uint256) public pendingShares;
     mapping(address => uint256) public claimableShares;
 
@@ -36,7 +36,7 @@ contract MockZyFAI is IZyFAI {
     }
 
     // -------------------------------------------------------------------------
-    // IZyFAI — dépôt
+    // IZyFAI — deposit
     // -------------------------------------------------------------------------
 
     function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
@@ -47,7 +47,7 @@ contract MockZyFAI is IZyFAI {
     }
 
     // -------------------------------------------------------------------------
-    // IZyFAI — lecture
+    // IZyFAI — read
     // -------------------------------------------------------------------------
 
     function totalAssets() external view returns (uint256) {
@@ -70,7 +70,7 @@ contract MockZyFAI is IZyFAI {
     }
 
     // -------------------------------------------------------------------------
-    // IZyFAI — retrait asynchrone
+    // IZyFAI — asynchronous withdrawal
     // -------------------------------------------------------------------------
 
     function requestRedeem(
@@ -82,11 +82,11 @@ contract MockZyFAI is IZyFAI {
         _shares[owner] -= shares;
         _totalShares   -= shares;
         pendingShares[controller] += shares;
-        requestId = 0; // ZyFAI agrège tout sous requestId = 0
+        requestId = 0; // ZyFAI aggregates all requests under requestId = 0
     }
 
     /**
-     * @notice requestId ignoré — retourne les shares pending agrégées du controller.
+     * @notice requestId ignored — returns aggregated pending shares for the controller.
      */
     function pendingRedeemRequest(
         uint256 /*requestId*/,
@@ -96,8 +96,8 @@ contract MockZyFAI is IZyFAI {
     }
 
     /**
-     * @notice requestId ignoré — retourne les shares claimables agrégées du controller.
-     *         LSE.sol appelle toujours avec requestId = 0.
+     * @notice requestId ignored — returns aggregated claimable shares for the controller.
+     *         LSE.sol always calls with requestId = 0.
      */
     function claimableRedeemRequest(
         uint256 /*requestId*/,
@@ -118,12 +118,12 @@ contract MockZyFAI is IZyFAI {
     }
 
     // -------------------------------------------------------------------------
-    // Helpers de test
+    // Test helpers
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Simule le traitement ZyFAI : déplace tout le pending en claimable.
-     * Équivaut à attendre ~60s sur le vrai réseau.
+     * @notice Simulate ZyFAI processing: move all pending shares to claimable.
+     *         Equivalent to waiting ~60s on the real network.
      */
     function fulfillAll(address controller) external {
         claimableShares[controller] += pendingShares[controller];
@@ -131,8 +131,8 @@ contract MockZyFAI is IZyFAI {
     }
 
     /**
-     * @notice Simule du yield : ajoute de l'USDC sans minter de shares.
-     * Résultat : convertToAssets() augmente → $LSE vaut plus de WETH.
+     * @notice Simulate yield: add USDC without minting shares.
+     *         Effect: convertToAssets() increases → $LSE is worth more WETH.
      */
     function simulateYield(uint256 usdcAmount) external {
         usdc.safeTransferFrom(msg.sender, address(this), usdcAmount);

@@ -3,16 +3,16 @@ pragma solidity ^0.8.28;
 
 /**
  * @title ISwapper
- * @dev Interface d'abstraction du swap WETH <-> USDC.
- * Implémentations : MockSwapper (tests) / UniswapV3Swapper (production)
+ * @dev Abstraction interface for WETH <-> USDC swaps.
+ *      Implementations: MockSwapper (tests) / UniswapV3Swapper (production)
  */
 interface ISwapper {
 
     /**
-     * @notice Échange du WETH contre de l'USDC.
-     * @param amountIn Montant de WETH à échanger (18 décimales)
-     * @param minAmountOut Montant minimum d'USDC attendu — revert si non atteint (slippage)
-     * @return amountOut Montant d'USDC reçu (6 décimales)
+     * @notice Swap WETH for USDC.
+     * @param amountIn    Amount of WETH to swap (18 decimals)
+     * @param minAmountOut Minimum USDC expected — reverts if not met (slippage protection)
+     * @return amountOut  Amount of USDC received (6 decimals)
      */
     function swapWETHtoUSDC(
         uint256 amountIn,
@@ -20,10 +20,10 @@ interface ISwapper {
     ) external returns (uint256 amountOut);
 
     /**
-     * @notice Échange de l'USDC contre du WETH.
-     * @param amountIn Montant d'USDC à échanger (6 décimales)
-     * @param minAmountOut Montant minimum de WETH attendu — revert si non atteint (slippage)
-     * @return amountOut Montant de WETH reçu (18 décimales)
+     * @notice Swap USDC for WETH.
+     * @param amountIn    Amount of USDC to swap (6 decimals)
+     * @param minAmountOut Minimum WETH expected — reverts if not met (slippage protection)
+     * @return amountOut  Amount of WETH received (18 decimals)
      */
     function swapUSDCtoWETH(
         uint256 amountIn,

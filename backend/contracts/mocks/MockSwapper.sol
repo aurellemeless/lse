@@ -7,9 +7,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /**
  * @title MockSwapper
- * @dev Swap fictif 1:1 pour les tests (ajusté pour les décimales WETH/USDC).
- * WETH = 18 décimales, USDC = 6 décimales.
- * Taux appliqué : 1 WETH = 2000 USDC (fixe, pour les tests).
+ * @dev Fixed-rate swap for tests (accounts for WETH/USDC decimal difference).
+ *      WETH = 18 decimals, USDC = 6 decimals.
+ *      Fixed rate: 1 WETH = 2000 USDC.
  */
 contract MockSwapper is ISwapper {
     using SafeERC20 for IERC20;
@@ -27,8 +27,8 @@ contract MockSwapper is ISwapper {
     }
 
     /**
-     * @dev Prend du WETH, retourne de l'USDC au taux fixe.
-     * Le MockSwapper doit détenir suffisamment d'USDC.
+     * @dev Takes WETH, returns USDC at the fixed rate.
+     *      MockSwapper must hold enough USDC.
      */
     function swapWETHtoUSDC(
         uint256 amountIn,
@@ -41,8 +41,8 @@ contract MockSwapper is ISwapper {
     }
 
     /**
-     * @dev Prend de l'USDC, retourne du WETH au taux fixe.
-     * Le MockSwapper doit détenir suffisamment de WETH.
+     * @dev Takes USDC, returns WETH at the fixed rate.
+     *      MockSwapper must hold enough WETH.
      */
     function swapUSDCtoWETH(
         uint256 amountIn,

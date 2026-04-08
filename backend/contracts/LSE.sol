@@ -11,16 +11,16 @@ import {ISwapper} from "./interfaces/ISwapper.sol";
 
 /**
  * @title LSE — Liquid Stock ETH
- * @notice Vault ERC-4626 / ERC-7540 sur Base.
- *         L'utilisateur dépose du WETH et reçoit des $LSE.
- *         Le WETH est swappé en USDC (Uniswap v3) puis déposé chez ZyFAI qui génère du yield.
- *         Le retrait est asynchrone (ERC-7540) : requestRedeem() puis claim() après ~60s.
+ * @notice ERC-4626 / ERC-7540 vault on Base.
+ *         Users deposit WETH and receive $LSE shares.
+ *         WETH is swapped to USDC (Uniswap v3) and deposited into ZyFAI for yield.
+ *         Withdrawals are asynchronous (ERC-7540): requestRedeem() then claim() after ~60s.
  *
- * @dev Architecture "vault de vault" :
+ * @dev "Vault of vault" architecture:
  *      User (WETH) → LSE.sol → swap WETH/USDC → ZyFAI SmartAccountWrapper (USDC)
  *
- *      Limitation MVP : totalAssets() utilise un taux WETH/USDC stocké (pas un oracle on-chain).
- *      À remplacer par Chainlink WETH/USDC en production.
+ *      MVP limitation: totalAssets() uses a stored WETH/USDC rate instead of an on-chain oracle.
+ *      Replace with a Chainlink WETH/USDC feed in production.
  */
 contract LSE is ERC4626, Ownable {
     using SafeERC20 for IERC20;
@@ -30,26 +30,26 @@ contract LSE is ERC4626, Ownable {
     // -------------------------------------------------------------------------
 
     IZyFAI public immutable zyFAI;
-    ISwapper public swapper;         // remplaçable par owner (Mock → Uniswap)
+    ISwapper public swapper;         // replaceable by owner (Mock → Uniswap)
     IERC20  public immutable usdc;
 
-    // ERC-7540 : délégation de droits entre adresses
+    // ERC-7540: operator delegation
     mapping(address controller => mapping(address operator => bool)) public isOperator;
 
-    // Suivi interne des demandes de retrait
+    // Internal redeem request tracking
     uint256 private _nextRequestId = 1;
 
     struct PendingRedeem {
-        address controller;   // qui peut appeler claim()
-        uint256 zyFaiShares;  // shares ZyFAI à réclamer
+        address controller;   // address allowed to call claim()
+        uint256 zyFaiShares;  // ZyFAI shares to claim
         bool    claimed;
     }
     mapping(uint256 requestId => PendingRedeem) public pendingRedeems;
 
     /**
-     * @notice Taux WETH/USDC utilisé pour convertir la valeur ZyFAI (USDC) en WETH.
-     *         Exprimé en USDC avec 6 décimales. Ex : 2000e6 = 1 WETH vaut 2000 USDC.
-     *         Mettre à jour via setWethPrice() en production.
+     * @notice WETH/USDC rate used to convert ZyFAI value (USDC) back to WETH.
+     *         Expressed in USDC with 6 decimals. e.g. 2000e6 = 1 WETH worth 2000 USDC.
+     *         Update via setWethPrice() as the market rate changes.
      */
     uint256 public wethPriceInUsdc;
 
@@ -84,11 +84,11 @@ contract LSE is ERC4626, Ownable {
     // -------------------------------------------------------------------------
 
     /**
-     * @param _weth            Adresse WETH (asset du vault)
-     * @param _usdc            Adresse USDC (asset ZyFAI)
-     * @param _zyFAI           Adresse du SmartAccountWrapper ZyFAI
-     * @param _swapper         Adresse du swapper (MockSwapper ou UniswapV3Swapper)
-     * @param _wethPriceInUsdc Taux initial WETH/USDC — ex : 2000e6
+     * @param _weth            WETH token address (vault asset)
+     * @param _usdc            USDC token address (ZyFAI asset)
+     * @param _zyFAI           ZyFAI SmartAccountWrapper address
+     * @param _swapper         Swapper address (MockSwapper or UniswapV3Swapper)
+     * @param _wethPriceInUsdc Initial WETH/USDC rate — e.g. 2000e6
      */
     constructor(
         IERC20  _weth,
@@ -108,52 +108,52 @@ contract LSE is ERC4626, Ownable {
     }
 
     // -------------------------------------------------------------------------
-    // ERC-4626 — dépôt (synchrone)
+    // ERC-4626 — deposit (synchronous)
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Dépose du WETH, reçoit des $LSE.
-     * @dev Flux : WETH → swap USDC → ZyFAI deposit → mint $LSE
-     *      Les shares sont calculées AVANT le dépôt pour refléter le taux actuel.
+     * @notice Deposit WETH, receive $LSE shares.
+     * @dev Flow: WETH → swap to USDC → ZyFAI deposit → mint $LSE
+     *      Shares are computed BEFORE the deposit to reflect the current exchange rate.
      */
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
         if (assets == 0) revert ZeroAmount();
 
-        // Calculer les shares sur l'état courant (avant modification du vault)
+        // Compute shares against current vault state (before deposit)
         shares = previewDeposit(assets);
 
-        // 1. Récupérer le WETH de l'appelant
+        // 1. Pull WETH from caller
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), assets);
 
         // 2. Swap WETH → USDC
         IERC20(asset()).forceApprove(address(swapper), assets);
         uint256 usdcAmount = swapper.swapWETHtoUSDC(assets, 0);
 
-        // 3. Déposer l'USDC chez ZyFAI
+        // 3. Deposit USDC into ZyFAI
         usdc.forceApprove(address(zyFAI), usdcAmount);
         zyFAI.deposit(usdcAmount, address(this));
 
-        // 4. Minter les $LSE
+        // 4. Mint $LSE to receiver
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
     /**
-     * @dev mint() désactivé — utiliser deposit() uniquement.
+     * @dev mint() disabled — use deposit() only.
      */
     function mint(uint256, address) public pure override returns (uint256) {
         revert UseDeposit();
     }
 
     // -------------------------------------------------------------------------
-    // ERC-4626 — valeur du vault
+    // ERC-4626 — vault value
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Valeur totale du vault exprimée en WETH.
-     * @dev Lit la valeur USDC chez ZyFAI et la convertit via wethPriceInUsdc.
-     *      Formule : usdcValue (6 dec) * 1e18 / wethPriceInUsdc (6 dec) = WETH (18 dec)
+     * @notice Total vault value expressed in WETH.
+     * @dev Reads USDC value from ZyFAI and converts via wethPriceInUsdc.
+     *      Formula: usdcValue (6 dec) * 1e18 / wethPriceInUsdc (6 dec) = WETH (18 dec)
      */
     function totalAssets() public view override returns (uint256) {
         uint256 zyFaiShares = zyFAI.balanceOf(address(this));
@@ -163,7 +163,7 @@ contract LSE is ERC4626, Ownable {
     }
 
     // -------------------------------------------------------------------------
-    // ERC-4626 — retrait synchrone désactivé (ERC-7540 async obligatoire)
+    // ERC-4626 — synchronous withdrawal disabled (ERC-7540 async required)
     // -------------------------------------------------------------------------
 
     function withdraw(uint256, address, address) public pure override returns (uint256) {
@@ -183,17 +183,17 @@ contract LSE is ERC4626, Ownable {
     }
 
     // -------------------------------------------------------------------------
-    // ERC-7540 — retrait asynchrone
+    // ERC-7540 — asynchronous withdrawal
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Étape 1 — Soumet une demande de retrait.
-     *         Les $LSE sont brûlés immédiatement. ZyFAI traite la demande (~60s).
+     * @notice Step 1 — Submit a redemption request.
+     *         $LSE shares are burned immediately. ZyFAI processes the request (~60s).
      *
-     * @param shares     Nombre de $LSE à racheter
-     * @param controller Adresse autorisée à appeler claim() pour cette demande
-     * @param owner      Propriétaire des $LSE (msg.sender ou opérateur autorisé)
-     * @return requestId À conserver pour appeler claim()
+     * @param shares     Number of $LSE shares to redeem
+     * @param controller Address allowed to call claim() for this request
+     * @param owner      $LSE holder (msg.sender or an authorized operator)
+     * @return requestId Must be kept to call claim()
      */
     function requestRedeem(
         uint256 shares,
@@ -203,17 +203,17 @@ contract LSE is ERC4626, Ownable {
         if (shares == 0) revert ZeroAmount();
         if (owner != msg.sender && !isOperator[owner][msg.sender]) revert NotAuthorized();
 
-        // Calculer les ZyFAI shares proportionnelles AVANT le burn
+        // Compute proportional ZyFAI shares BEFORE burning
         uint256 supply = totalSupply();
         uint256 zyFaiSharesToRedeem = (shares * zyFAI.balanceOf(address(this))) / supply;
 
-        // Brûler les $LSE de l'owner
+        // Burn $LSE from owner
         _burn(owner, shares);
 
-        // Soumettre la demande à ZyFAI (LSE.sol est le controller côté ZyFAI)
+        // Submit request to ZyFAI (LSE.sol acts as the ZyFAI-side controller)
         zyFAI.requestRedeem(zyFaiSharesToRedeem, address(this), address(this));
 
-        // Enregistrer la demande avec notre propre requestId
+        // Register the request under our own requestId
         requestId = _nextRequestId++;
         pendingRedeems[requestId] = PendingRedeem({
             controller: controller,
@@ -225,14 +225,14 @@ contract LSE is ERC4626, Ownable {
     }
 
     /**
-     * @notice Étape 2 — Réclame le WETH une fois la demande traitée par ZyFAI.
+     * @notice Step 2 — Claim WETH once ZyFAI has processed the request.
      *
-     * @param requestId    Identifiant retourné par requestRedeem()
-     * @param receiver     Adresse qui reçoit le WETH
-     * @return wethReceived Montant de WETH reçu
+     * @param requestId    Identifier returned by requestRedeem()
+     * @param receiver     Address that receives the WETH
+     * @return wethReceived Amount of WETH received
      *
-     * @dev ⚠️ MVP : claimableRedeemRequest(0, ...) retourne le total claimable agrégé.
-     *      En cas de multiples demandes simultanées, l'ordre FIFO de ZyFAI s'applique.
+     * @dev MVP note: claimableRedeemRequest(0, ...) returns the aggregated claimable total.
+     *      With multiple concurrent requests, ZyFAI's FIFO ordering applies.
      */
     function claim(
         uint256 requestId,
@@ -243,30 +243,30 @@ contract LSE is ERC4626, Ownable {
         if (pending.controller != msg.sender) revert NotAuthorized();
         if (pending.claimed) revert AlreadyClaimed();
 
-        // Vérifier que ZyFAI a traité suffisamment de shares
+        // Check that ZyFAI has processed enough shares
         uint256 claimable = zyFAI.claimableRedeemRequest(0, address(this));
         if (claimable < pending.zyFaiShares) revert NotClaimableYet();
 
-        // Marquer avant les appels externes (protection contre la reentrancy)
+        // Mark as claimed before external calls (reentrancy guard)
         pending.claimed = true;
 
-        // Récupérer les USDC de ZyFAI
+        // Retrieve USDC from ZyFAI
         uint256 usdcReceived = zyFAI.redeem(pending.zyFaiShares, address(this), address(this));
 
         // Swap USDC → WETH
         usdc.forceApprove(address(swapper), usdcReceived);
         wethReceived = swapper.swapUSDCtoWETH(usdcReceived, 0);
 
-        // Envoyer le WETH au receiver
+        // Transfer WETH to receiver
         IERC20(asset()).safeTransfer(receiver, wethReceived);
     }
 
     // -------------------------------------------------------------------------
-    // ERC-7540 — opérateurs
+    // ERC-7540 — operators
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Autorise ou révoque un opérateur à agir au nom de msg.sender.
+     * @notice Grant or revoke an operator's right to act on behalf of msg.sender.
      */
     function setOperator(address operator, bool approved) external returns (bool) {
         isOperator[msg.sender][operator] = approved;
@@ -288,12 +288,12 @@ contract LSE is ERC4626, Ownable {
     // Admin
     // -------------------------------------------------------------------------
 
-    /** @notice Remplace le swapper. Permet de passer de MockSwapper à UniswapV3Swapper. */
+    /** @notice Replace the swapper. Used to upgrade from MockSwapper to UniswapV3Swapper. */
     function setSwapper(address _swapper) external onlyOwner {
         swapper = ISwapper(_swapper);
     }
 
-    /** @notice Met à jour le taux WETH/USDC pour totalAssets(). Ex : 2000e6 = $2000/ETH. */
+    /** @notice Update the WETH/USDC rate for totalAssets(). e.g. 2000e6 = $2000/ETH. */
     function setWethPrice(uint256 _wethPriceInUsdc) external onlyOwner {
         wethPriceInUsdc = _wethPriceInUsdc;
     }

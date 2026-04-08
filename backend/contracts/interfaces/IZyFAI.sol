@@ -3,54 +3,54 @@ pragma solidity ^0.8.28;
 
 /**
  * @title IZyFAI
- * @dev Interface du SmartAccountWrapper ZyFAI (ERC-7540 async vault, asset = USDC)
- * Adresse Base Mainnet : 0x29d6fbe61ea5b41697a285e8ef5de6f2f9e6bd94
+ * @dev Interface for the ZyFAI SmartAccountWrapper (ERC-7540 async vault, asset = USDC).
+ *      Base Mainnet address: 0x29d6fbe61ea5b41697a285e8ef5de6f2f9e6bd94
  */
 interface IZyFAI {
 
     // -------------------------------------------------------------------------
-    // ERC-4626 — dépôt synchrone
+    // ERC-4626 — synchronous deposit
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Dépose des USDC dans ZyFAI, reçoit des shares en retour.
-     * @param assets Montant d'USDC à déposer
-     * @param receiver Adresse qui reçoit les shares
-     * @return shares Nombre de shares mintées
+     * @notice Deposit USDC into ZyFAI, receive shares in return.
+     * @param assets Amount of USDC to deposit
+     * @param receiver Address that receives the shares
+     * @return shares Number of shares minted
      */
     function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
     /**
-     * @notice Valeur totale des actifs gérés par ZyFAI (en USDC).
+     * @notice Total value of assets managed by ZyFAI (in USDC).
      */
     function totalAssets() external view returns (uint256);
 
     /**
-     * @notice Convertit un montant de shares en USDC au taux actuel.
+     * @notice Convert a share amount to USDC at the current exchange rate.
      */
     function convertToAssets(uint256 shares) external view returns (uint256);
 
     /**
-     * @notice Convertit un montant d'USDC en shares au taux actuel.
+     * @notice Convert a USDC amount to shares at the current exchange rate.
      */
     function convertToShares(uint256 assets) external view returns (uint256);
 
     /**
-     * @notice Balance de shares ZyFAI d'une adresse.
+     * @notice ZyFAI share balance of an address.
      */
     function balanceOf(address account) external view returns (uint256);
 
     // -------------------------------------------------------------------------
-    // ERC-7540 — retrait asynchrone
+    // ERC-7540 — asynchronous withdrawal
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Étape 1 du retrait : soumet une demande de rachat.
-     * Les shares sont bloquées immédiatement. ZyFAI traite la demande (~60s).
-     * @param shares Nombre de shares à racheter
-     * @param controller Adresse qui pourra réclamer le retrait
-     * @param owner Adresse propriétaire des shares (doit avoir approuvé si différent de msg.sender)
-     * @return requestId Identifiant de la demande, à conserver pour le claim
+     * @notice Step 1 of withdrawal: submit a redemption request.
+     *         Shares are locked immediately. ZyFAI processes the request (~60s).
+     * @param shares     Number of shares to redeem
+     * @param controller Address that will be allowed to claim the withdrawal
+     * @param owner      Share owner (must have approved if different from msg.sender)
+     * @return requestId Request identifier — must be kept for the claim step
      */
     function requestRedeem(
         uint256 shares,
@@ -59,7 +59,7 @@ interface IZyFAI {
     ) external returns (uint256 requestId);
 
     /**
-     * @notice Montant de shares en attente de traitement pour un requestId donné.
+     * @notice Amount of shares pending processing for a given requestId.
      */
     function pendingRedeemRequest(
         uint256 requestId,
@@ -67,7 +67,7 @@ interface IZyFAI {
     ) external view returns (uint256 shares);
 
     /**
-     * @notice Montant de shares prêtes à être réclamées pour un requestId donné.
+     * @notice Amount of shares ready to be claimed for a given requestId.
      */
     function claimableRedeemRequest(
         uint256 requestId,
@@ -75,11 +75,11 @@ interface IZyFAI {
     ) external view returns (uint256 shares);
 
     /**
-     * @notice Étape 2 du retrait : réclame les USDC une fois la demande traitée.
-     * @param shares Nombre de shares à racheter (doit correspondre au claimable)
-     * @param receiver Adresse qui reçoit les USDC
-     * @param controller Controller associé au requestId
-     * @return assets Montant d'USDC reçu
+     * @notice Step 2 of withdrawal: claim USDC once the request has been processed.
+     * @param shares     Number of shares to redeem (must match the claimable amount)
+     * @param receiver   Address that receives the USDC
+     * @param controller Controller associated with the requestId
+     * @return assets    Amount of USDC received
      */
     function redeem(
         uint256 shares,
