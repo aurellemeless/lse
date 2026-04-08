@@ -1,0 +1,9 @@
+{
+  "LSEModule": {
+    "wethAddress":     "0x4200000000000000000000000000000000000006",
+    "usdcAddress":     "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "zyFAIAddress":    "0x29d6fbe61ea5b41697a285e8ef5de6f2f9e6bd94",
+    "swapperAddress":  "TODO — déployer UniswapV3Swapper.sol en premier",
+    "wethPriceInUsdc": "2000000000"
+  }
+}
