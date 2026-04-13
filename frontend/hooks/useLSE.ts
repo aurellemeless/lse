@@ -13,12 +13,14 @@ export function useVaultStats() {
     address: CONTRACTS.LSE,
     abi: LSE_ABI,
     functionName: 'totalAssets',
+    query: { enabled: !!CONTRACTS.LSE },
   })
 
   const totalSupply = useReadContract({
     address: CONTRACTS.LSE,
     abi: LSE_ABI,
     functionName: 'totalSupply',
+    query: { enabled: !!CONTRACTS.LSE },
   })
 
   const lseBalance = useReadContract({
@@ -120,7 +122,7 @@ export function useDeposit() {
 export function useRequestRedeem() {
   const { address } = useAccount()
   const { writeContract, data: hash, isPending, error } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({ hash })
 
   const requestRedeem = (shares: bigint) => {
     if (!address) return
@@ -132,7 +134,7 @@ export function useRequestRedeem() {
     })
   }
 
-  return { requestRedeem, isPending: isPending || isConfirming, isSuccess, error }
+  return { requestRedeem, isPending: isPending || isConfirming, isSuccess, error, receipt }
 }
 
 // ─── Claim ────────────────────────────────────────────────────────────────────

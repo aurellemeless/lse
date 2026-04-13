@@ -48,8 +48,16 @@ export function PendingCard() {
   )
 }
 
-export function ClaimCard() {
+interface ClaimCardProps {
+  defaultRequestId?: bigint
+}
+
+export function ClaimCard({ defaultRequestId }: ClaimCardProps) {
   const [requestId, setRequestId] = useState('')
+
+  useEffect(() => {
+    if (defaultRequestId !== undefined) setRequestId(defaultRequestId.toString())
+  }, [defaultRequestId])
   const [done, setDone]           = useState(false)
 
   const { refetch } = useVaultStats()

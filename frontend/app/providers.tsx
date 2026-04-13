@@ -1,6 +1,6 @@
 'use client'
 
-import { wagmiAdapter, projectId, sepolia } from '@/config/wagmi'
+import { wagmiAdapter, projectId, sepolia, localhost } from '@/config/wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
 import { type ReactNode } from 'react'
@@ -12,7 +12,7 @@ const queryClient = new QueryClient()
 createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [sepolia],
+  networks: [localhost, sepolia],
   metadata: {
     name: '$LSE',
     description: 'Générez du rendement sur votre WETH avec ZyFAI',

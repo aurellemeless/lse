@@ -32,6 +32,7 @@ contract LSE is ERC4626, Ownable {
     IZyFAI public immutable zyFAI;
     ISwapper public swapper;         // replaceable by owner (Mock → Uniswap)
     IERC20  public immutable usdc;
+    IERC20  public immutable weth;
 
     // ERC-7540: operator delegation
     mapping(address controller => mapping(address operator => bool)) public isOperator;
@@ -101,10 +102,16 @@ contract LSE is ERC4626, Ownable {
         ERC4626(_weth)
         Ownable(msg.sender)
     {
+        weth = _weth;
         usdc            = _usdc;
         zyFAI           = _zyFAI;
         swapper         = _swapper;
         wethPriceInUsdc = _wethPriceInUsdc;
+
+
+
+        usdc.forceApprove(address(zyFAI), type(uint256).max);
+        weth.forceApprove(address(swapper), type(uint256).max);
     }
 
     // -------------------------------------------------------------------------
@@ -126,11 +133,9 @@ contract LSE is ERC4626, Ownable {
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), assets);
 
         // 2. Swap WETH → USDC
-        IERC20(asset()).forceApprove(address(swapper), assets);
         uint256 usdcAmount = swapper.swapWETHtoUSDC(assets, 0);
 
         // 3. Deposit USDC into ZyFAI
-        usdc.forceApprove(address(zyFAI), usdcAmount);
         zyFAI.deposit(usdcAmount, address(this));
 
         // 4. Mint $LSE to receiver
@@ -290,7 +295,11 @@ contract LSE is ERC4626, Ownable {
 
     /** @notice Replace the swapper. Used to upgrade from MockSwapper to UniswapV3Swapper. */
     function setSwapper(address _swapper) external onlyOwner {
+        // Revoke allowance on the old swapper to avoid leaving stale approvals.
+        weth.forceApprove(address(swapper), 0);
         swapper = ISwapper(_swapper);
+        // Grant allowance to the new swapper.
+        weth.forceApprove(_swapper, type(uint256).max);
     }
 
     /** @notice Update the WETH/USDC rate for totalAssets(). e.g. 2000e6 = $2000/ETH. */

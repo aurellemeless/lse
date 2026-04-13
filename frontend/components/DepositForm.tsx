@@ -17,8 +17,9 @@ export function DepositForm() {
   const deposit  = useDeposit()
   const mintWETH = useMintTestWETH()
 
-  const amountWei     = amount ? parseEther(amount) : 0n
-  const needsApproval = allowance !== undefined && allowance < amountWei
+  const amountWei      = amount ? parseEther(amount) : 0n
+  // const insufficientBalance = amountWei > 0n && amountWei > wethBalance
+  const needsApproval  = allowance !== undefined && allowance < amountWei
 
   useEffect(() => {
     if (approve.isSuccess) { refetchAllowance(); setStep('idle') }
@@ -31,7 +32,10 @@ export function DepositForm() {
   const handleSubmit = () => {
     if (!amountWei) return
     if (needsApproval) { setStep('approving'); approve.approve(maxUint256) }
-    else               { setStep('depositing'); deposit.deposit(amountWei) }
+    else               {
+       setStep('depositing'); 
+       deposit.deposit(amountWei);
+    }
   }
 
   const isLoading = approve.isPending || deposit.isPending

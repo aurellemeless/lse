@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { DepositForm } from '@/components/DepositForm'
 import { RedeemForm } from '@/components/RedeemForm'
 import { PendingCard, ClaimCard } from '@/components/ClaimSection'
@@ -14,7 +14,12 @@ const tabs = [
 type Tab = typeof tabs[number]['id']
 
 export function ActionTabs() {
-  const [active, setActive] = useState<Tab>('supply')
+  const [active, setActive]         = useState<Tab>('supply')
+  const [lastRequestId, setLastRequestId] = useState<bigint | undefined>(undefined)
+
+  const handleRequestId = useCallback((id: bigint) => {
+    setLastRequestId(id)
+  }, [])
 
   return (
     <div className="space-y-5">
@@ -63,10 +68,10 @@ export function ActionTabs() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <RedeemForm />
+            <RedeemForm onRequestId={handleRequestId} />
             <PendingCard />
           </div>
-          <ClaimCard />
+          <ClaimCard defaultRequestId={lastRequestId} />
         </div>
       )}
     </div>

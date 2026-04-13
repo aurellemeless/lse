@@ -3,6 +3,8 @@
 import { formatEther } from 'viem'
 import { useVaultStats } from '@/hooks/useLSE'
 import { Card, CardContent } from '@/components/ui/card'
+import { useChainId } from 'wagmi'
+import { sepolia, localhost } from '@/config/wagmi'
 
 function fmt(wei: bigint, d = 4) {
   return parseFloat(formatEther(wei)).toFixed(d)
@@ -19,6 +21,8 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function VaultSidebar() {
   const { totalAssets, sharePrice, isLoading } = useVaultStats()
+  const chainId = useChainId()
+  const chainName = chainId === localhost.id ? 'Hardhat' : chainId === sepolia.id ? 'Sepolia' : `Chain ${chainId}`
 
   return (
     <Card className="h-fit">
@@ -38,7 +42,7 @@ export function VaultSidebar() {
           <Row label="Dernier APY"   value="—" />
           <Row label="Standard"      value="ERC-7540" />
           <Row label="Latence"       value="~60s" />
-          <Row label="Réseau"        value="Sepolia" />
+          <Row label="Réseau"        value={chainName} />
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Déposez WETH → échange en USDC → ZyFAI génère du rendement → rachetez vos $LSE contre WETH + gains.

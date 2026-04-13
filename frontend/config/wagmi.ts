@@ -20,11 +20,19 @@ export const sepolia: AppKitNetwork = {
   testnet: true,
 }
 
+export const localhost: AppKitNetwork = {
+  id: 31337,
+  name: 'Hardhat',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['http://127.0.0.1:8545'] } },
+  testnet: true,
+}
+
 export const wagmiAdapter = new WagmiAdapter({
   storage: createStorage({ storage: cookieStorage }),
   ssr: true,
   projectId,
-  networks: [sepolia],
+  networks: [localhost, sepolia],
 })
 
 export const config = wagmiAdapter.wagmiConfig

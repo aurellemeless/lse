@@ -1,25 +1,39 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { parseEther, formatEther } from 'viem'
+import { parseEther, formatEther, parseEventLogs } from 'viem'
 import { useRequestRedeem, useVaultStats } from '@/hooks/useLSE'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { LSE_ABI } from '@/lib/contracts'
 
-export function RedeemForm() {
+interface Props {
+  onRequestId?: (id: bigint) => void
+}
+
+export function RedeemForm({ onRequestId }: Props) {
   const [amount, setAmount] = useState('')
   const [step, setStep]     = useState<'idle' | 'pending' | 'done'>('idle')
+  const [lastId, setLastId] = useState<bigint | null>(null)
 
   const { lseBalance, sharePrice, refetch } = useVaultStats()
-  const { requestRedeem, isPending, isSuccess, error } = useRequestRedeem()
+  const { requestRedeem, isPending, isSuccess, error, receipt } = useRequestRedeem()
 
   const amountWei    = amount ? parseEther(amount) : 0n
   const wethEstimate = amountWei > 0n ? (amountWei * sharePrice) / parseEther('1') : 0n
 
   useEffect(() => {
-    if (isSuccess) { refetch(); setAmount(''); setStep('done'); setTimeout(() => setStep('idle'), 3000) }
-  }, [isSuccess])
+    if (isSuccess && receipt) {
+      const logs = parseEventLogs({ abi: LSE_ABI, eventName: 'RedeemRequest', logs: receipt.logs })
+      if (logs.length > 0) {
+        const id = logs[0].args.requestId
+        setLastId(id)
+        onRequestId?.(id)
+      }
+      refetch(); setAmount(''); setStep('done'); setTimeout(() => setStep('idle'), 3000)
+    }
+  }, [isSuccess, receipt])
 
   return (
     <Card>
@@ -49,6 +63,12 @@ export function RedeemForm() {
           disabled={!amountWei || isPending || step === 'done'}>
           {step === 'done' ? '✓ Demande envoyée' : isPending ? 'Envoi…' : 'Demander le rachat'}
         </Button>
+
+        {lastId !== null && (
+          <p className="text-xs text-muted-foreground">
+            ID de demande : <span className="font-mono font-semibold text-foreground">{lastId.toString()}</span>
+          </p>
+        )}
 
         {error && <p className="text-xs text-destructive">{error.message?.slice(0, 80)}</p>}
       </CardContent>

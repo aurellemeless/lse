@@ -42,7 +42,7 @@ export default function Home() {
 
         {/* Footer disclaimer */}
         <p className="text-[10px] font-mono text-muted-foreground border-t border-border pt-6">
-          Contrat non audité — démo uniquement sur le réseau de test Sepolia — pas de conseil financier
+          Contrat non audité — démo uniquement — pas de conseil financier
         </p>
 
       </div>
