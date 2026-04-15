@@ -5,6 +5,11 @@ import { configVariable, defineConfig } from "hardhat/config";
 
 export default defineConfig({
   plugins: [hardhatToolboxMochaEthersPlugin],
+  etherscan: {
+    apiKey: {
+      sepolia: configVariable("ETHERSCAN_API_KEY"),
+    },
+  },
   solidity: {
     profiles: {
       default: {
