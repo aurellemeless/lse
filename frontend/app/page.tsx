@@ -16,13 +16,13 @@ export default function Home() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <h1 className="font-bold text-2xl tracking-tight">
-              Générez du rendement avec WETH
+             Générez du rendement sans rien faire, baladez-vous avec.
             </h1>
             <Badge variant="outline" className="text-[10px] font-mono">Alyra 2026</Badge>
             <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">Groupe 4</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Déposez du WETH · recevez des parts $LSE adossées au rendement IA de ZyFAI · coffre asynchrone ERC-7540
+             Déposez vos ETH, recevez du LSE. C'est un token qui fusionne ETH et son rendement.
           </p>
         </div>
 

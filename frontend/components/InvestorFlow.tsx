@@ -3,8 +3,8 @@ export function InvestorFlow() {
   const steps = [
     {
       n: '1',
-      title: 'Déposer du WETH',
-      desc: 'Votre WETH est échangé en USDC et déposé dans ZyFAI. Vous recevez des parts $LSE représentant votre position.',
+      title: 'Mint LSE',
+      desc: 'Votre WETH est déposé, vous recevez votre équivalent en LSE. Vous recevez des parts $LSE représentant votre position.',
       color: 'bg-primary',
       textColor: 'text-primary',
       borderColor: 'border-primary/30',
@@ -12,8 +12,8 @@ export function InvestorFlow() {
     },
     {
       n: '2',
-      title: 'ZyFAI génère du rendement',
-      desc: 'L\'agent IA de ZyFAI gère vos USDC pour générer du rendement. Sur le réseau principal, cela prend ~60s par cycle.',
+      title: 'LSE génère du rendement',
+      desc: 'Les agents utilisent les ETH déposés pour générer du rendement. Si 10% de rendement, LSE = 1.1 ETH.',
       color: 'bg-amber-600',
       textColor: 'text-amber-700 dark:text-amber-400',
       borderColor: 'border-amber-600/30',
@@ -21,8 +21,8 @@ export function InvestorFlow() {
     },
     {
       n: '3',
-      title: 'Récupérer WETH + Gains',
-      desc: 'Demandez le rachat de vos parts $LSE. Une fois traité par ZyFAI, récupérez votre WETH avec les gains accumulés.',
+      title: 'Repartez avec plus d\'ETH',
+      desc: 'Brulez vos LSE pour récupérer des WETH. On espère que les agents ont bien travaillé.',
       color: 'bg-emerald-700',
       textColor: 'text-emerald-700 dark:text-emerald-400',
       borderColor: 'border-emerald-700/30',

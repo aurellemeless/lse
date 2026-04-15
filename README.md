@@ -189,5 +189,13 @@ SEPOLIA_PRIVATE_KEY=...
 
 **Curateurs indépendants**
 - [DeFiLlama](https://defillama.com)
-
 - [Pharos Watch](https://pharos.watch)
+
+## Outils
+
+- VSCode : IDE pour ecrire le code en général
+- Remix : Pour tester/appeler les contracts déjà deployés 
+- Claude code : 
+  - Assistance dans  la construction du frontend
+  - Assistance pour l'amélioration de la documentation : README, commentaires de codes
+  - Diagramme ASCII du flux de dépôt et retrait
