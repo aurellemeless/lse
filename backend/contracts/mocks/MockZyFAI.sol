@@ -8,20 +8,21 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /**
  * @title MockZyFAI
  * @dev Simulates the ZyFAI SmartAccountWrapper for tests.
+ *      Asset = WETH (18 decimals).
  *
  *      Initial share/asset ratio is 1:1.
- *      Yield can be simulated via simulateYield() — adds USDC without minting shares.
+ *      Yield can be simulated via simulateYield() — adds WETH without minting shares.
  *
  *      Async behaviour (requestId = 0, aggregated like the real ZyFAI):
  *        1. requestRedeem()  → adds shares to the controller's pending bucket
  *        2. fulfillAll()     → [test helper] moves all pending to claimable
  *        3. claimableRedeemRequest(0, controller) → returns total claimable shares
- *        4. redeem()         → transfers USDC, deducts from claimable
+ *        4. redeem()         → transfers WETH, deducts from claimable
  */
 contract MockZyFAI is IZyFAI {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable usdc;
+    IERC20 public immutable weth;
 
     // Internal share accounting per address
     mapping(address => uint256) private _shares;
@@ -31,8 +32,8 @@ contract MockZyFAI is IZyFAI {
     mapping(address => uint256) public pendingShares;
     mapping(address => uint256) public claimableShares;
 
-    constructor(address _usdc) {
-        usdc = IERC20(_usdc);
+    constructor(address _weth) {
+        weth = IERC20(_weth);
     }
 
     // -------------------------------------------------------------------------
@@ -41,7 +42,7 @@ contract MockZyFAI is IZyFAI {
 
     function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
         shares = convertToShares(assets);
-        usdc.safeTransferFrom(msg.sender, address(this), assets);
+        weth.safeTransferFrom(msg.sender, address(this), assets);
         _shares[receiver] += shares;
         _totalShares += shares;
     }
@@ -51,16 +52,16 @@ contract MockZyFAI is IZyFAI {
     // -------------------------------------------------------------------------
 
     function totalAssets() external view returns (uint256) {
-        return usdc.balanceOf(address(this));
+        return weth.balanceOf(address(this));
     }
 
     function convertToAssets(uint256 shares) public view returns (uint256) {
         if (_totalShares == 0) return shares;
-        return (shares * usdc.balanceOf(address(this))) / _totalShares;
+        return (shares * weth.balanceOf(address(this))) / _totalShares;
     }
 
     function convertToShares(uint256 assets) public view returns (uint256) {
-        uint256 balance = usdc.balanceOf(address(this));
+        uint256 balance = weth.balanceOf(address(this));
         if (_totalShares == 0 || balance == 0) return assets;
         return (assets * _totalShares) / balance;
     }
@@ -97,7 +98,6 @@ contract MockZyFAI is IZyFAI {
 
     /**
      * @notice requestId ignored — returns aggregated claimable shares for the controller.
-     *         LSE.sol always calls with requestId = 0.
      */
     function claimableRedeemRequest(
         uint256 /*requestId*/,
@@ -114,7 +114,7 @@ contract MockZyFAI is IZyFAI {
         require(claimableShares[controller] >= shares, "MockZyFAI: not claimable");
         assets = convertToAssets(shares);
         claimableShares[controller] -= shares;
-        usdc.safeTransfer(receiver, assets);
+        weth.safeTransfer(receiver, assets);
     }
 
     // -------------------------------------------------------------------------
@@ -131,10 +131,10 @@ contract MockZyFAI is IZyFAI {
     }
 
     /**
-     * @notice Simulate yield: add USDC without minting shares.
+     * @notice Simulate yield: add WETH without minting shares.
      *         Effect: convertToAssets() increases → $LSE is worth more WETH.
      */
-    function simulateYield(uint256 usdcAmount) external {
-        usdc.safeTransferFrom(msg.sender, address(this), usdcAmount);
+    function simulateYield(uint256 wethAmount) external {
+        weth.safeTransferFrom(msg.sender, address(this), wethAmount);
     }
 }
