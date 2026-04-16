@@ -8,47 +8,36 @@ Formation Blockchain Alyra 2026
 
 ## Concept
 
-$LSE est un **vault DeFi sur Base** (L2 OP Stack). L'utilisateur dépose du WETH, reçoit des tokens `$LSE` représentant sa part du vault, et un agent IA (ZyFAI) fait travailler cet ETH automatiquement pour générer du rendement. Pas de DAO, pas de vote, pas de complexité.
+$LSE est un **vault DeFi sur Base** (L2 OP Stack). L'utilisateur dépose de l'ETH ou du WETH, reçoit des tokens `$LSE` représentant sa part du vault, et un agent IA (ZyFAI) fait travailler cet ETH automatiquement pour générer du rendement. Pas de DAO, pas de vote, pas de complexité.
 
 ---
 
 ## Architecture — Vault de Vault
 
-ZyFAI ne dispose que d'une instance USDC sur Base. `LSE.sol` agit comme une surcouche ERC-7540 qui gère la conversion WETH ↔ USDC en interne, de façon invisible pour l'utilisateur.
+`LSE.sol` dépose le WETH directement chez ZyFAI — aucune conversion intermédiaire. L'utilisateur peut déposer de l'ETH natif : le wrap est effectué en interne et reste invisible.
 
-```
-Utilisateur (WETH)
-      │
-      ▼
-┌─────────────────────────────────┐
-│  LSE.sol  (ERC-4626 / ERC-7540) │  ← ce repo
-│  asset = WETH                   │
-│                                 │
-│  deposit()  →  swap WETH→USDC   │
-│  claim()    ←  swap USDC→WETH   │
-└───────────────┬─────────────────┘
-                │ USDC (via ISwapper)
-                ▼
-┌─────────────────────────────────┐
-│  ZyFAI SmartAccountWrapper      │  ← déployé par ZyFAI
-│  asset = USDC                   │
-│  retrait asynchrone (~60s)      │
-└─────────────────────────────────┘
-```
+![Schéma fonctionnel](fonctional.png)
 
 ---
 
 ## Flux opérationnels
 
 ### Dépôt (synchrone)
+
 ```
-1. deposit(WETH)
-2. swap WETH → USDC  (Uniswap v3 / MockSwapper)
-3. ZyFAI.deposit(USDC)
-4. mint $LSE à l'utilisateur
+Option A — WETH : deposit(amount)
+  1. LSE pull le WETH de l'utilisateur
+  2. ZyFAI.deposit(WETH)
+  3. mint $LSE à l'utilisateur
+
+Option B — ETH natif : depositETH()
+  1. LSE wrappe l'ETH reçu en WETH
+  2. ZyFAI.deposit(WETH)
+  3. mint $LSE à l'utilisateur
 ```
 
 ### Retrait (asynchrone — ERC-7540)
+
 ```
 Étape 1 — requestRedeem(shares)
   → $LSE brûlés immédiatement
@@ -56,9 +45,23 @@ Utilisateur (WETH)
   → requestId retourné (~60s de traitement)
 
 Étape 2 — claim(requestId)
-  → ZyFAI.redeem() → USDC récupéré
-  → swap USDC → WETH
-  → WETH transféré à l'utilisateur
+  → ZyFAI.redeem() → WETH transféré directement au receiver
+```
+
+---
+
+## Mécanique du prix
+
+```
+Prix $LSE = totalAssets (WETH chez ZyFAI) ÷ totalSupply ($LSE)
+```
+
+Le yield généré par ZyFAI augmente `totalAssets` sans changer `totalSupply`. Le prix du $LSE monte donc passivement, sans aucune action de l'utilisateur.
+
+```
+t=0 : NAV = 10 ETH, 10 LSE → 1 LSE = 1.0 ETH
+t=1 : ZyFAI génère 1 ETH de yield
+      NAV = 11 ETH, 10 LSE → 1 LSE = 1.1 ETH
 ```
 
 ---
@@ -69,7 +72,7 @@ Utilisateur (WETH)
 |---|---|
 | **Équipe $LSE** | Déploie et maintient `LSE.sol`. Ne gère aucun fonds, aucune clé privée. |
 | **ZyFAI** | Exécute les stratégies de yield. Prend 10% de commission sur les performances. |
-| **Utilisateur** | Dépose WETH, reçoit `$LSE`. Responsable de ses décisions d'investissement. |
+| **Utilisateur** | Dépose ETH ou WETH, reçoit `$LSE`. Responsable de ses décisions d'investissement. |
 | **Curateurs externes** | DeFiLlama, Stakehouse, Pharos Watch — analyse et notation indépendantes. |
 
 ---
@@ -93,8 +96,7 @@ Utilisateur (WETH)
 | Framework | Hardhat v3 |
 | Déploiement | Hardhat Ignition |
 | Tests | Mocha + Ethers v6 — 21 tests |
-| Swap | ISwapper (MockSwapper en test, UniswapV3 en prod) |
-| Yield | ZyFAI SmartAccountWrapper (USDC, Base Mainnet) |
+| Yield | ZyFAI SmartAccountWrapper (WETH, Base Mainnet) |
 | Frontend | Next.js + Tailwind CSS |
 
 ---
@@ -105,22 +107,21 @@ Utilisateur (WETH)
 lse/
 ├── backend/
 │   ├── contracts/
-│   │   ├── LSE.sol                        # Vault principal ERC-4626 / ERC-7540
+│   │   ├── LSE.sol                   # Vault principal ERC-4626 / ERC-7540
 │   │   ├── interfaces/
-│   │   │   ├── IZyFAI.sol                 # Interface ZyFAI SmartAccountWrapper
-│   │   │   └── ISwapper.sol               # Interface swap WETH ↔ USDC
+│   │   │   └── IZyFAI.sol            # Interface ZyFAI SmartAccountWrapper
 │   │   └── mocks/
-│   │       ├── MockERC20.sol              # ERC20 avec mint (tests)
-│   │       ├── MockSwapper.sol            # Swap 1 WETH = 2000 USDC (tests)
-│   │       └── MockZyFAI.sol             # Vault ZyFAI simulé (tests)
+│   │       ├── MockERC20.sol         # ERC20 avec mint (tests)
+│   │       └── MockZyFAI.sol         # Vault ZyFAI simulé (tests)
 │   ├── test/
-│   │   └── LSE.test.ts                    # 21 tests Mocha
+│   │   └── LSE.test.ts               # 21 tests Mocha
 │   ├── ignition/modules/
-│   │   └── LSE.ts                         # Module de déploiement
+│   │   ├── LSE.ts                    # Module de déploiement production
+│   │   └── LSEDemo.ts                # Module de déploiement démo / testnet
 │   └── hardhat.config.ts
-├── frontend/                              # Interface utilisateur du projet
+├── frontend/                         # Interface utilisateur Next.js
 └── docs/
-    └── PROJECT_STATUS.md                  # Architecture & points bloquants
+    └── MyNotes.md                    # Notes de développement
 ```
 
 ---
@@ -151,10 +152,13 @@ npx hardhat test
 
 ```bash
 # Réseau local
-npx hardhat ignition deploy ignition/modules/LSE.ts --network hardhatOp
+npx hardhat ignition deploy ignition/modules/LSEDemo.ts --network hardhatOp
 
-# Sepolia (testnet)
-npx hardhat ignition deploy ignition/modules/LSE.ts --network sepolia
+# Sepolia (testnet — mocks inclus)
+npx hardhat ignition deploy ignition/modules/LSEDemo.ts --network sepolia
+
+# Base Mainnet (production — nécessite l'adresse ZyFAI WETH dans params/base.json)
+npx hardhat ignition deploy ignition/modules/LSE.ts --network base --parameters ignition/params/base.json
 ```
 
 ---
@@ -170,10 +174,11 @@ SEPOLIA_PRIVATE_KEY=...
 
 ## Vision long terme
 
-- Instance ZyFAI WETH native sur Base → suppression du swap WETH/USDC
 - Intégration d'un second agent (**Giza**) en compétition avec ZyFAI
-- Détenir des LSE pour avoir le droit de faire des prédictions sur la performance des agents.
+- Détenir des $LSE pour avoir le droit de faire des prédictions sur la performance des agents
 - Protocole open source : toute entité peut déployer un vault compatible
+
+---
 
 ## Références
 
@@ -185,9 +190,16 @@ SEPOLIA_PRIVATE_KEY=...
 **Infrastructure**
 - [Base — L2 OP Stack](https://base.org)
 - [ZyFAI — Agent IA de yield](https://zyfi.org)
-- [Uniswap v3 — Protocole de swap](https://docs.uniswap.org)
 
 **Curateurs indépendants**
 - [DeFiLlama](https://defillama.com)
-
 - [Pharos Watch](https://pharos.watch)
+
+## Outils
+
+- VSCode : IDE pour écrire le code en général
+- Remix : Pour tester/appeler les contrats déjà déployés
+- Claude Code :
+  - Assistance dans la construction du frontend
+  - Assistance pour l'amélioration de la documentation : README, commentaires de code
+  - Diagramme ASCII du flux de dépôt et retrait

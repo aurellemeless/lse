@@ -209,3 +209,39 @@ export function useClaimableShares() {
     args: [CONTRACTS.LSE],
   })
 }
+
+// ── Valeur WETH des shares en attente (pendingShares → convertToAssets) ───
+export function usePendingValue() {
+  const shares = usePendingShares()
+  const value = useReadContract({
+    address: CONTRACTS.ZYFAI,
+    abi: MOCK_ZYFAI_ABI,
+    functionName: 'convertToAssets',
+    args: shares.data !== undefined ? [shares.data] : undefined,
+    query: { enabled: shares.data !== undefined && shares.data > 0n },
+  })
+  return {
+    data: value.data ?? 0n,
+    sharesData: shares.data ?? 0n,
+    isLoading: shares.isLoading || value.isLoading,
+    refetch: () => { shares.refetch(); value.refetch() },
+  }
+}
+
+// ── Valeur WETH des shares claimables (claimableShares → convertToAssets) ─
+export function useClaimableValue() {
+  const shares = useClaimableShares()
+  const value = useReadContract({
+    address: CONTRACTS.ZYFAI,
+    abi: MOCK_ZYFAI_ABI,
+    functionName: 'convertToAssets',
+    args: shares.data !== undefined ? [shares.data] : undefined,
+    query: { enabled: shares.data !== undefined && shares.data > 0n },
+  })
+  return {
+    data: value.data ?? 0n,
+    sharesData: shares.data ?? 0n,
+    isLoading: shares.isLoading || value.isLoading,
+    refetch: () => { shares.refetch(); value.refetch() },
+  }
+}

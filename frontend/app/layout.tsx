@@ -8,7 +8,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
   title: '$LSE — Rendement sur WETH',
-  description: 'Générez du rendement sur votre WETH avec ZyFAI',
+  description: 'Générez du rendement sur votre ETH avec un agent IA',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

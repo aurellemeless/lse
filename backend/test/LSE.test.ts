@@ -4,10 +4,7 @@ import { expect } from "chai";
 // ─────────────────────────────────────────────────────────────────────────────
 // Constantes
 // ─────────────────────────────────────────────────────────────────────────────
-const WETH_PRICE_IN_USDC = 2000n * 10n ** 6n; // 1 WETH = 2000 USDC
-
 const toWETH = (n: number) => BigInt(n) * 10n ** 18n;
-const toUSDC = (n: number) => BigInt(n) * 10n ** 6n;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Déploiement partagé (réexécuté avant chaque test)
@@ -16,26 +13,14 @@ async function deploy() {
   const { ethers } = await hre.network.connect();
   const [owner, alice, bob] = await ethers.getSigners();
 
-  const weth    = await ethers.deployContract("MockERC20", ["Wrapped Ether", "WETH", 18]);
-  const usdc    = await ethers.deployContract("MockERC20", ["USD Coin",      "USDC", 6]);
-  const zyFAI   = await ethers.deployContract("MockZyFAI",  [await usdc.getAddress()]);
-  const swapper = await ethers.deployContract("MockSwapper", [
+  const weth  = await ethers.deployContract("MockWETH");
+  const zyFAI = await ethers.deployContract("MockZyFAI",  [await weth.getAddress()]);
+  const lse   = await ethers.deployContract("LSE", [
     await weth.getAddress(),
-    await usdc.getAddress(),
-  ]);
-  const lse = await ethers.deployContract("LSE", [
-    await weth.getAddress(),
-    await usdc.getAddress(),
     await zyFAI.getAddress(),
-    await swapper.getAddress(),
-    WETH_PRICE_IN_USDC,
   ]);
 
-  // Approvisionner le MockSwapper pour qu'il puisse exécuter les swaps
-  await weth.mint(await swapper.getAddress(), toWETH(1000));
-  await usdc.mint(await swapper.getAddress(), toUSDC(2_000_000));
-
-  return { ethers, lse, weth, usdc, zyFAI, swapper, owner, alice, bob };
+  return { ethers, lse, weth, zyFAI, owner, alice, bob };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,7 +69,6 @@ describe("LSE", () => {
       await weth.connect(alice).approve(await lse.getAddress(), toWETH(1));
       await lse.connect(alice).deposit(toWETH(1), alice.address);
 
-      // 1 WETH → swap → 2000 USDC chez ZyFAI → totalAssets = 1 WETH
       expect(await lse.totalAssets()).to.equal(toWETH(1));
     });
 
@@ -120,6 +104,34 @@ describe("LSE", () => {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
+  describe("depositETH()", () => {
+
+    it("wrap ETH → mint $LSE", async () => {
+      const { lse, alice } = await deploy();
+
+      await lse.connect(alice).depositETH(alice.address, { value: toWETH(1) });
+
+      expect(await lse.balanceOf(alice.address)).to.be.gt(0n);
+    });
+
+    it("totalAssets reflète le dépôt ETH", async () => {
+      const { lse, alice } = await deploy();
+
+      await lse.connect(alice).depositETH(alice.address, { value: toWETH(1) });
+
+      expect(await lse.totalAssets()).to.equal(toWETH(1));
+    });
+
+    it("revert si msg.value = 0", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).depositETH(alice.address, { value: 0n })
+      ).to.be.revertedWithCustomError(lse, "ZeroAmount");
+    });
+
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
   describe("Retrait synchrone désactivé", () => {
 
     it("withdraw() revert", async () => {
@@ -134,6 +146,27 @@ describe("LSE", () => {
       await expect(
         lse.connect(alice).redeem(1n, alice.address, alice.address)
       ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("previewRedeem() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).previewRedeem(1n)
+      ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("previewWithdraw() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).previewWithdraw(1n)
+      ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("mint() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).mint(1n, alice.address)
+      ).to.be.revertedWithCustomError(lse, "UseDeposit");
     });
 
   });
@@ -253,7 +286,7 @@ describe("LSE", () => {
   describe("Yield", () => {
 
     it("le yield augmente totalAssets et dilue les nouveaux déposants", async () => {
-      const { lse, weth, usdc, alice, bob, zyFAI } = await deploy();
+      const { lse, weth, alice, bob, zyFAI } = await deploy();
 
       // Alice dépose 1 WETH
       await weth.mint(alice.address, toWETH(1));
@@ -262,10 +295,10 @@ describe("LSE", () => {
 
       const totalBefore = await lse.totalAssets();
 
-      // ZyFAI génère 200 USDC de yield (10% sur 2000 USDC)
-      await usdc.mint(alice.address, toUSDC(200));
-      await usdc.connect(alice).approve(await zyFAI.getAddress(), toUSDC(200));
-      await zyFAI.connect(alice).simulateYield(toUSDC(200));
+      // ZyFAI génère 0.1 WETH de yield (10%)
+      await weth.mint(alice.address, toWETH(1) / 10n);
+      await weth.connect(alice).approve(await zyFAI.getAddress(), toWETH(1) / 10n);
+      await zyFAI.connect(alice).simulateYield(toWETH(1) / 10n);
 
       expect(await lse.totalAssets()).to.be.gt(totalBefore);
 
@@ -275,6 +308,26 @@ describe("LSE", () => {
       await lse.connect(bob).deposit(toWETH(1), bob.address);
 
       expect(await lse.balanceOf(bob.address)).to.be.lt(await lse.balanceOf(alice.address));
+    });
+
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  describe("supportsInterface()", () => {
+
+    it("retourne true pour IERC7540Redeem (0x620ee8e4)", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0x620ee8e4")).to.be.true;
+    });
+
+    it("retourne true pour IERC7540Operator (0xe3bc4e65)", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0xe3bc4e65")).to.be.true;
+    });
+
+    it("retourne false pour un interfaceId inconnu", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0xdeadbeef")).to.be.false;
     });
 
   });
