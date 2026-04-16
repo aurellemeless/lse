@@ -13,7 +13,7 @@ async function deploy() {
   const { ethers } = await hre.network.connect();
   const [owner, alice, bob] = await ethers.getSigners();
 
-  const weth  = await ethers.deployContract("MockERC20", ["Wrapped Ether", "WETH", 18]);
+  const weth  = await ethers.deployContract("MockWETH");
   const zyFAI = await ethers.deployContract("MockZyFAI",  [await weth.getAddress()]);
   const lse   = await ethers.deployContract("LSE", [
     await weth.getAddress(),
@@ -104,6 +104,34 @@ describe("LSE", () => {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
+  describe("depositETH()", () => {
+
+    it("wrap ETH → mint $LSE", async () => {
+      const { lse, alice } = await deploy();
+
+      await lse.connect(alice).depositETH(alice.address, { value: toWETH(1) });
+
+      expect(await lse.balanceOf(alice.address)).to.be.gt(0n);
+    });
+
+    it("totalAssets reflète le dépôt ETH", async () => {
+      const { lse, alice } = await deploy();
+
+      await lse.connect(alice).depositETH(alice.address, { value: toWETH(1) });
+
+      expect(await lse.totalAssets()).to.equal(toWETH(1));
+    });
+
+    it("revert si msg.value = 0", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).depositETH(alice.address, { value: 0n })
+      ).to.be.revertedWithCustomError(lse, "ZeroAmount");
+    });
+
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
   describe("Retrait synchrone désactivé", () => {
 
     it("withdraw() revert", async () => {
@@ -118,6 +146,27 @@ describe("LSE", () => {
       await expect(
         lse.connect(alice).redeem(1n, alice.address, alice.address)
       ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("previewRedeem() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).previewRedeem(1n)
+      ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("previewWithdraw() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).previewWithdraw(1n)
+      ).to.be.revertedWithCustomError(lse, "UseRequestRedeem");
+    });
+
+    it("mint() revert", async () => {
+      const { lse, alice } = await deploy();
+      await expect(
+        lse.connect(alice).mint(1n, alice.address)
+      ).to.be.revertedWithCustomError(lse, "UseDeposit");
     });
 
   });
@@ -259,6 +308,26 @@ describe("LSE", () => {
       await lse.connect(bob).deposit(toWETH(1), bob.address);
 
       expect(await lse.balanceOf(bob.address)).to.be.lt(await lse.balanceOf(alice.address));
+    });
+
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  describe("supportsInterface()", () => {
+
+    it("retourne true pour IERC7540Redeem (0x620ee8e4)", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0x620ee8e4")).to.be.true;
+    });
+
+    it("retourne true pour IERC7540Operator (0xe3bc4e65)", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0xe3bc4e65")).to.be.true;
+    });
+
+    it("retourne false pour un interfaceId inconnu", async () => {
+      const { lse } = await deploy();
+      expect(await lse.supportsInterface("0xdeadbeef")).to.be.false;
     });
 
   });
