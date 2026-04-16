@@ -15,7 +15,7 @@ createAppKit({
   networks: [localhost, sepolia],
   metadata: {
     name: '$LSE',
-    description: 'Générez du rendement sur votre WETH avec ZyFAI',
+    description: 'Générez du rendement sur votre ETH avec un agent IA',
     url: 'https://lse.finance',
     icons: [],
   },

@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { parseEther, formatEther, parseEventLogs } from 'viem'
 import { useRequestRedeem, useVaultStats } from '@/hooks/useLSE'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LSE_ABI } from '@/lib/contracts'
+import { cn } from '@/lib/utils'
 
 interface Props {
   onRequestId?: (id: bigint) => void
@@ -14,14 +15,17 @@ interface Props {
 
 export function RedeemForm({ onRequestId }: Props) {
   const [amount, setAmount] = useState('')
-  const [step, setStep]     = useState<'idle' | 'pending' | 'done'>('idle')
   const [lastId, setLastId] = useState<bigint | null>(null)
+  const [done, setDone]     = useState(false)
 
   const { lseBalance, sharePrice, refetch } = useVaultStats()
   const { requestRedeem, isPending, isSuccess, error, receipt } = useRequestRedeem()
 
-  const amountWei    = amount ? parseEther(amount) : 0n
-  const wethEstimate = amountWei > 0n ? (amountWei * sharePrice) / parseEther('1') : 0n
+  const amountWei     = amount ? parseEther(amount) : 0n
+  const insufficient  = amountWei > 0n && amountWei > lseBalance
+  const wethEstimate  = amountWei > 0n && sharePrice > 0n
+    ? (amountWei * sharePrice) / parseEther('1')
+    : 0n
 
   useEffect(() => {
     if (isSuccess && receipt) {
@@ -31,46 +35,99 @@ export function RedeemForm({ onRequestId }: Props) {
         setLastId(id)
         onRequestId?.(id)
       }
-      refetch(); setAmount(''); setStep('done'); setTimeout(() => setStep('idle'), 3000)
+      refetch(); setAmount(''); setDone(true)
+      setTimeout(() => setDone(false), 3000)
     }
   }, [isSuccess, receipt])
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Votre solde $LSE</CardTitle>
-        <CardDescription>Demande de rachat — les parts sont brûlées, puis le WETH est récupérable après ~60 s</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-3xl font-bold">{parseFloat(formatEther(lseBalance)).toFixed(4)}</p>
+      <CardContent className="space-y-4 pt-5">
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>$LSE à racheter</span>
-            <span>{parseFloat(formatEther(lseBalance)).toFixed(4)} $LSE</span>
-          </div>
-          <div className="flex gap-2">
-            <Input type="number" placeholder="0.0" value={amount} onChange={e => setAmount(e.target.value)} className="flex-1 h-10" />
-            <Button variant="outline" size="sm" className="h-10 px-3 text-xs" onClick={() => setAmount(formatEther(lseBalance))}>MAX</Button>
-          </div>
-          {wethEstimate > 0n && (
-            <p className="text-xs text-muted-foreground">≈ {parseFloat(formatEther(wethEstimate)).toFixed(4)} WETH après ~60 s</p>
-          )}
+        {/* Label + solde cliquable */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Vous retirez</span>
+          <button
+            onClick={() => setAmount(formatEther(lseBalance))}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            Solde : {parseFloat(formatEther(lseBalance)).toFixed(4)} $LSE
+          </button>
         </div>
 
-        <Button className="w-full h-10 bg-orange-700 hover:bg-orange-600"
-          onClick={() => { if (amountWei) { setStep('pending'); requestRedeem(amountWei) } }}
-          disabled={!amountWei || isPending || step === 'done'}>
-          {step === 'done' ? '✓ Demande envoyée' : isPending ? 'Envoi…' : 'Demander le rachat'}
-        </Button>
+        {/* Input token */}
+        <div className={cn(
+          'flex items-center gap-2 rounded-lg border bg-background px-3 h-14 transition-colors',
+          insufficient
+            ? 'border-destructive/50'
+            : 'border-border focus-within:border-[#B6509E]/40'
+        )}>
+          <Input
+            type="number"
+            placeholder="0.0"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            className="border-0 bg-transparent p-0 text-xl font-semibold h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setAmount(formatEther(lseBalance))}
+              className="text-[10px] font-bold text-[#B6509E] bg-[#B6509E]/10 hover:bg-[#B6509E]/20 px-1.5 py-0.5 rounded transition-colors"
+            >
+              MAX
+            </button>
+            <span className="text-sm font-semibold text-muted-foreground">$LSE</span>
+          </div>
+        </div>
 
-        {lastId !== null && (
-          <p className="text-xs text-muted-foreground">
-            ID de demande : <span className="font-mono font-semibold text-foreground">{lastId.toString()}</span>
-          </p>
+        {insufficient && (
+          <p className="text-xs text-destructive -mt-2">Solde insuffisant</p>
         )}
 
-        {error && <p className="text-xs text-destructive">{error.message?.slice(0, 80)}</p>}
+        {/* Preview */}
+        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Vous récupérerez</span>
+            <span className={cn('font-semibold', wethEstimate > 0n ? 'text-emerald-400' : 'text-muted-foreground')}>
+              {wethEstimate > 0n
+                ? `≈ ${parseFloat(formatEther(wethEstimate)).toFixed(4)} WETH`
+                : '—'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Délai de traitement</span>
+            <span className="text-muted-foreground">~60 secondes</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">$LSE brûlés</span>
+            <span className="text-muted-foreground">
+              {amountWei > 0n ? `${parseFloat(formatEther(amountWei)).toFixed(4)} $LSE` : '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <Button
+          className="w-full h-11 font-semibold text-white"
+          style={{ background: 'linear-gradient(135deg, #B6509E, #2EBAC6)' }}
+          onClick={() => { if (amountWei) requestRedeem(amountWei) }}
+          disabled={!amountWei || isPending || done || insufficient}
+        >
+          {done ? '✓ Demande envoyée' : isPending ? 'Envoi…' : 'Demander le rachat'}
+        </Button>
+
+        {/* Request ID après succès */}
+        {lastId !== null && (
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+            <span className="text-xs text-muted-foreground">ID de demande</span>
+            <span className="text-xs font-mono font-bold text-foreground">#{lastId.toString()}</span>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-xs text-destructive">{error.message?.slice(0, 80)}</p>
+        )}
+
       </CardContent>
     </Card>
   )
