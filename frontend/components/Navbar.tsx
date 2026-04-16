@@ -20,7 +20,7 @@ export function Navbar() {
       <div className="max-w-6xl mx-auto px-6 flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[11px] font-black text-primary-foreground">
+            <div className="w-7 h-7 rounded-full gradient-aave flex items-center justify-center text-[11px] font-black text-white">
               L
             </div>
             <span className="font-bold tracking-tight">$LSE</span>
