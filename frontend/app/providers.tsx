@@ -21,6 +21,11 @@ createAppKit({
   },
   themeMode: 'dark',
   features: { analytics: false },
+  themeVariables: {
+    '--w3m-accent':               '#2EBAC6',
+    '--w3m-border-radius-master': '4px',
+    '--w3m-font-family':          'var(--font-geist-sans)',
+  },
 })
 
 export function Providers({ children, cookies }: { children: ReactNode; cookies: string | null }) {

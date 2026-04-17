@@ -3,6 +3,7 @@
 import { formatEther } from 'viem'
 import { useAccount } from 'wagmi'
 import { useVaultStats } from '@/hooks/useLSE'
+import { ConnectButton } from '@/components/ConnectButton'
 
 function fmt(wei: bigint, d = 4) {
   return parseFloat(formatEther(wei)).toFixed(d)
@@ -161,9 +162,9 @@ export function VaultStats() {
         </p>
 
         {!address ? (
-          <div className="flex flex-col items-center justify-center h-28 gap-2 text-center">
-            <p className="text-sm text-muted-foreground">Connectez votre wallet</p>
-            <p className="text-xs text-muted-foreground/60">pour voir votre position</p>
+          <div className="flex flex-col items-center justify-center h-28 gap-3 text-center">
+            <p className="text-xs text-muted-foreground/60">Connectez votre wallet<br/>pour voir votre position</p>
+            <ConnectButton size="sm" />
           </div>
         ) : (
           <>

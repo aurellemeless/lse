@@ -3,6 +3,7 @@ import { VaultStats } from '@/components/VaultStats'
 import { VaultSidebar } from '@/components/VaultSidebar'
 import { InvestorFlow } from '@/components/InvestorFlow'
 import { ActionTabs } from '@/components/ActionTabs'
+import { TransactionHistory } from '@/components/TransactionHistory'
 import { Badge } from '@/components/ui/badge'
 
 export default function Home() {
@@ -39,6 +40,9 @@ export default function Home() {
           </div>
           <VaultSidebar />
         </div>
+
+        {/* Transaction history */}
+        <TransactionHistory />
 
         {/* Footer disclaimer */}
         <p className="text-[10px] font-mono text-muted-foreground border-t border-border pt-6">

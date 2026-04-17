@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useAccount } from 'wagmi'
 import { DepositForm } from '@/components/DepositForm'
 import { RedeemForm } from '@/components/RedeemForm'
 import { PendingCard, ClaimCard } from '@/components/ClaimSection'
@@ -40,8 +41,14 @@ export function ActionTabs() {
   const [redeemVersion, setRedeemVersion] = useState(0)
   const [fulfillVersion, setFulfillVersion] = useState(0)
 
+  const { address } = useAccount()
   const pending   = usePendingValue()
   const claimable = useClaimableValue()
+
+  // Repasser sur "supply" si le wallet est déconnecté en étant sur "redeem"
+  useEffect(() => {
+    if (!address && active === 'redeem') setActive('supply')
+  }, [address, active])
 
   const hasPending   = pending.sharesData > 0n
   const hasClaimable = claimable.sharesData > 0n
@@ -64,21 +71,28 @@ export function ActionTabs() {
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 rounded-xl bg-muted/40 border border-border">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActive(t.id)}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all',
-              active === t.id
-                ? 'bg-card text-foreground shadow-sm border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
+        {tabs.map((t) => {
+          const disabled = t.id === 'redeem' && !address
+          return (
+            <button
+              key={t.id}
+              onClick={() => !disabled && setActive(t.id)}
+              disabled={disabled}
+              title={disabled ? 'Connectez votre wallet pour retirer' : undefined}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all',
+                disabled
+                  ? 'opacity-40 cursor-not-allowed text-muted-foreground'
+                  : active === t.id
+                    ? 'bg-card text-foreground shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Supply tab */}

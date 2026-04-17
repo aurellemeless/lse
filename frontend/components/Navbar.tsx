@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { ConnectButton } from '@/components/ConnectButton'
 import { useChainId } from 'wagmi'
 import { sepolia, localhost } from '@/config/wagmi'
 
@@ -30,7 +31,7 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="hidden sm:flex text-muted-foreground">{chainName}</Badge>
           <ThemeToggle />
-          <w3m-button label="Se connecter" loadingLabel="Connexion…" />
+          <ConnectButton />
         </div>
       </div>
     </nav>
