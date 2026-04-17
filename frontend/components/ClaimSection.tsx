@@ -11,14 +11,18 @@ import { cn } from '@/lib/utils'
 // ── Carte "En cours de traitement" ────────────────────────────────────────
 interface PendingCardProps {
   refreshTrigger?: number
+  onFulfilled?: () => void
 }
 
-export function PendingCard({ refreshTrigger }: PendingCardProps) {
+export function PendingCard({ refreshTrigger, onFulfilled }: PendingCardProps) {
   const pending = usePendingValue()
   const fulfill = useFulfillAll()
 
   useEffect(() => {
-    if (fulfill.isSuccess) pending.refetch()
+    if (fulfill.isSuccess) {
+      pending.refetch()
+      onFulfilled?.()
+    }
   }, [fulfill.isSuccess])
 
   useEffect(() => {
@@ -78,8 +82,8 @@ export function PendingCard({ refreshTrigger }: PendingCardProps) {
           <div className="flex flex-col items-center justify-center py-4 gap-1.5">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.4"/>
-                <path d="M7 4v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.4"/>
+                <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.4" />
+                <path d="M7 4v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.4" />
               </svg>
             </div>
             <p className="text-xs text-muted-foreground">Aucune demande en cours</p>
@@ -94,9 +98,10 @@ export function PendingCard({ refreshTrigger }: PendingCardProps) {
 // ── Carte "Récupérer le WETH" ─────────────────────────────────────────────
 interface ClaimCardProps {
   defaultRequestId?: bigint
+  refreshTrigger?: number
 }
 
-export function ClaimCard({ defaultRequestId }: ClaimCardProps) {
+export function ClaimCard({ defaultRequestId, refreshTrigger }: ClaimCardProps) {
   const [requestId, setRequestId] = useState('')
   const [done, setDone] = useState(false)
 
@@ -104,18 +109,26 @@ export function ClaimCard({ defaultRequestId }: ClaimCardProps) {
     if (defaultRequestId !== undefined) setRequestId(defaultRequestId.toString())
   }, [defaultRequestId])
 
-  const { refetch }  = useVaultStats()
-  const claimable    = useClaimableValue()
-  const pending      = usePendingValue()
-  const claim        = useClaim()
+  const { refetch } = useVaultStats()
+  const claimable = useClaimableValue()
+  const pending = usePendingValue()
+  const claim = useClaim()
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined) claimable.refetch()
+  }, [refreshTrigger])
 
   const requestIdBig = requestId ? BigInt(requestId) : undefined
   const hasClaimable = claimable.sharesData > 0n
 
   useEffect(() => {
     if (claim.isSuccess) {
-      refetch(); claimable.refetch(); pending.refetch()
-      setDone(true); setTimeout(() => setDone(false), 3000)
+      refetch();
+      claimable.refetch();
+      pending.refetch()
+      setDone(true);
+      setTimeout(() => setDone(false), 3000);
+      setRequestId(''); // reset input
     }
   }, [claim.isSuccess])
 
