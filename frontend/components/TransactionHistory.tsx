@@ -3,23 +3,9 @@
 import { formatEther } from 'viem'
 import { useAccount } from 'wagmi'
 import { useTransactionHistory, type HistoryEntry } from '@/hooks/useHistory'
+import { formatDate, shortHash } from '@/lib/utils'
 
 const EXPLORER = 'https://sepolia.etherscan.io/tx'
-
-function shortHash(hash: string) {
-  return `${hash.slice(0, 6)}…${hash.slice(-4)}`
-}
-
-function formatDate(timestamp: number) {
-  if (!timestamp) return '—'
-  return new Date(timestamp * 1000).toLocaleString('fr-FR', {
-    day:    '2-digit',
-    month:  '2-digit',
-    year:   '2-digit',
-    hour:   '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function DepositRow({ e }: { e: Extract<HistoryEntry, { type: 'deposit' }> }) {
   return (
