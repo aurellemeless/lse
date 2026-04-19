@@ -4,7 +4,7 @@ export function InvestorFlow() {
     {
       n: '01',
       title: 'Déposez de l\'ETH',
-      desc: 'Déposez vos ETH ou WETH dans le vault. Vous recevez des $LSE représentant votre part.',
+      desc: 'Déposez vos ETH ou WETH dans le vault. Vous recevrez un montant de LSE équivalent à votre dépôt.',
       icon: (
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <path d="M9 1.5v15M9 1.5L5 6m4-4.5L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
